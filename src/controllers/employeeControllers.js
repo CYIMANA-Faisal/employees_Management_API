@@ -4,6 +4,7 @@ import EmpError from '../utils/errors/BadRequestError';
 import userExist from '../services/findManager';
 import employeeExist from '../services/findEmployee';
 import 'express-async-errors';
+import { hashPassword } from '../utils/auth';
 
 export const createEmployee = async (req, res, next) => {
     const data = {
@@ -12,6 +13,7 @@ export const createEmployee = async (req, res, next) => {
         code: generateEmpCode(),
         phoneNumber: req.body.phoneNumber,
         email: req.body.email,
+        password: hashPassword('defaultPassword'),
         dateOfBirth: req.body.dateOfBirth,
         status: 'INACTIVE',
         position:  req.body.position
@@ -23,7 +25,7 @@ export const createEmployee = async (req, res, next) => {
     }
     try {
         const employee = await models.Employee.create(data);
-        res.status(200).json({ status: 200, message: `Employee ${employee.name} created successfully`, data: employee });  
+        next();  
     } catch (error) {
         next(error)
     }
@@ -34,7 +36,6 @@ export const editEmployee = async (req, res, next) => {
     const empCode = req.params.empcode.toString();
     // checking if employee exist
     const existingEmployee = await employeeExist(empCode);
-    console.log(existingEmployee);
     if (existingEmployee === null) {
         throw new EmpError((`The employee you are trying to edit does not exist in the database`), 404);
     }
@@ -55,7 +56,6 @@ export const suspendEmployee = async (req, res, next) => {
     const empCode = req.params.empcode.toString();
     // checking if employee exist
     const existingEmployee = await employeeExist(empCode);
-    console.log(existingEmployee);
     if (existingEmployee === null) {
         throw new EmpError((`The employee you are trying to suspend does not exist in the database`), 404);
     }
@@ -75,7 +75,6 @@ export const activateEmployee = async (req, res, next) => {
     const empCode = req.params.empcode.toString();
     // checking if employee exist
     const existingEmployee = await employeeExist(empCode);
-    console.log(existingEmployee);
     if (existingEmployee === null) {
         throw new EmpError((`The employee you are trying to activate does not exist in the database`), 404);
     }
@@ -95,7 +94,6 @@ export const deleteEmployee = async (req, res, next) => {
     const empCode = req.params.empcode.toString();
     // checking if employee exist
     const existingEmployee = await employeeExist(empCode);
-    console.log(existingEmployee);
     if (existingEmployee === null) {
         throw new EmpError((`The employee you are trying to delete does not exist in the database`), 409);
     }
@@ -108,5 +106,34 @@ export const deleteEmployee = async (req, res, next) => {
         res.status(200).json({ status: 200, message: `Employee with code ${empCode} deleted successfully`});  
     } catch (error) {
         next(error);
+    }
+}
+
+export const searchEmployee = async (req, res, next) => {
+    const query = req.query.query;
+    try {
+        let result = [];
+        const employees = await models.Employee.findAll(
+            {
+                attributes: {exclude: ['password', "createdAt", "updatedAt"]},
+                raw: true,
+            }
+        );
+        for (let index = 0; index < employees.length; index++) {
+            const employee = employees[index]
+            for (const key in employee) {
+                if (employee[key] === query) {
+                    result.push(employee);
+                }
+            }
+        }
+        console.log(result)
+        if (result.length === 0) {
+            res.status(200).json({ status: 200, message: "No result that much your serach query found"});
+        } else {
+            res.status(200).json({ status: 200, message:"result found", data: result});
+        }
+    } catch (error) {
+        next(error)
     }
 }

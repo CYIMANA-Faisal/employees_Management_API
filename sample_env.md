@@ -20,3 +20,5 @@ DB_PORT_TEST=''
 DB_URL_TEST=''
 
 JWT_SECRET_KEY='secrete'
+BASE_URL = 'http://localhost:3000/api/v1'
+SENDGRID_API_KEY='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'
